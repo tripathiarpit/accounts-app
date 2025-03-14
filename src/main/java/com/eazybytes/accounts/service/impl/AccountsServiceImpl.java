@@ -62,16 +62,18 @@ public class AccountsServiceImpl  implements IAccountsService {
      */
     @Override
     public CustomerDto fetchAccount(String mobileNumber) {
-        Customer customer = customerRepository.findByMobileNumber(mobileNumber).orElseThrow(
-                () -> new ResourceNotFoundException("Customer", "mobileNumber", mobileNumber)
-        );
-        Accounts accounts = accountsRepository.findByCustomerId(customer.getCustomerId()).orElseThrow(
-                () -> new ResourceNotFoundException("Account", "customerId", customer.getCustomerId().toString())
-        );
+        Customer customer = customerRepository.findByMobileNumber(mobileNumber)
+                .orElseThrow(() -> new ResourceNotFoundException("Customer", "mobileNumber", mobileNumber));
+
+        Accounts accounts = accountsRepository.findByCustomerId(customer.getCustomerId())
+                .orElseThrow(() -> new ResourceNotFoundException("Account", "customerId", customer.getCustomerId().toString()));
+
         CustomerDto customerDto = CustomerMapper.mapToCustomerDto(customer, new CustomerDto());
-        customerDto.setAccountsDto(AccountsMapper.mapToAccountsDto(accounts, new AccountsDto()));
+        customerDto.setAccounts(AccountsMapper.mapToAccountsDto(accounts));  // ✅ Corrected field
+
         return customerDto;
     }
+
 
     /**
      * @param customerDto - CustomerDto Object
@@ -79,25 +81,31 @@ public class AccountsServiceImpl  implements IAccountsService {
      */
     @Override
     public boolean updateAccount(CustomerDto customerDto) {
-        boolean isUpdated = false;
-        AccountsDto accountsDto = customerDto.getAccountsDto();
-        if(accountsDto !=null ){
-            Accounts accounts = accountsRepository.findById(accountsDto.getAccountNumber()).orElseThrow(
-                    () -> new ResourceNotFoundException("Account", "AccountNumber", accountsDto.getAccountNumber().toString())
-            );
-            AccountsMapper.mapToAccounts(accountsDto, accounts);
-            accounts = accountsRepository.save(accounts);
-
-            Long customerId = accounts.getCustomerId();
-            Customer customer = customerRepository.findById(customerId).orElseThrow(
-                    () -> new ResourceNotFoundException("Customer", "CustomerID", customerId.toString())
-            );
-            CustomerMapper.mapToCustomer(customerDto,customer);
-            customerRepository.save(customer);
-            isUpdated = true;
+        if (customerDto.getAccounts() == null) {
+            return false; // No account details provided, no update needed
         }
-        return  isUpdated;
+
+        AccountsDto accountsDto = customerDto.getAccounts();
+
+        // Fetch account details
+        Accounts accounts = accountsRepository.findById(accountsDto.getAccountNumber())
+                .orElseThrow(() -> new ResourceNotFoundException("Account", "AccountNumber", accountsDto.getAccountNumber().toString()));
+
+        // Update account entity and save
+        Accounts updatedAccount = AccountsMapper.mapToAccounts(accountsDto);
+        accountsRepository.save(updatedAccount);
+
+        // Fetch customer details
+        Customer customer = customerRepository.findById(updatedAccount.getCustomerId())
+                .orElseThrow(() -> new ResourceNotFoundException("Customer", "CustomerID", updatedAccount.getCustomerId().toString()));
+
+        // Update customer entity and save
+        Customer updatedCustomer = CustomerMapper.mapToCustomer(customerDto, customer);
+        customerRepository.save(updatedCustomer);
+
+        return true;
     }
+
 
     /**
      * @param mobileNumber - Input Mobile Number
