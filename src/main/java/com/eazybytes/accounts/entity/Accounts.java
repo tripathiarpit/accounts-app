@@ -12,9 +12,6 @@ import lombok.*;
 @Table(name = "accounts")
 public class Accounts extends BaseEntity {
 
-    @Column(name = "customer_id", nullable = false)
-    private Long customerId;
-
     @Id
     @Column(name = "account_number", nullable = false, unique = true)
     private Long accountNumber;
@@ -30,4 +27,8 @@ public class Accounts extends BaseEntity {
 
     @Column(name = "ifsc_code", nullable = false, length = 11)
     private String ifscCode;
+    @ManyToOne
+    @JoinColumn(name = "customer_id", referencedColumnName = "customer_id")
+    private Customer customer;
+
 }

@@ -98,3 +98,4 @@ CREATE TABLE stop_cheques (
                               stop_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                               FOREIGN KEY (account_number) REFERENCES accounts(account_number) ON DELETE CASCADE
 );
+

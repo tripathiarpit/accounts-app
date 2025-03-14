@@ -16,8 +16,10 @@ import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 import java.util.Random;
+import java.util.stream.Collectors;
 
 @Service
 @AllArgsConstructor
@@ -47,14 +49,17 @@ public class AccountsServiceImpl  implements IAccountsService {
      */
     private Accounts createNewAccount(Customer customer) {
         Accounts newAccount = new Accounts();
-        newAccount.setCustomerId(customer.getCustomerId());
+
         long randomAccNumber = 1000000000L + new Random().nextInt(900000000);
 
         newAccount.setAccountNumber(randomAccNumber);
         newAccount.setAccountType(AccountsConstants.SAVINGS);
         newAccount.setBranchAddress(AccountsConstants.ADDRESS);
+        newAccount.setCustomer(customer); // Associate with the Customer entity
+
         return newAccount;
     }
+
 
     /**
      * @param mobileNumber - Input Mobile Number
@@ -62,17 +67,26 @@ public class AccountsServiceImpl  implements IAccountsService {
      */
     @Override
     public CustomerDto fetchAccount(String mobileNumber) {
+        // Fetch customer details
         Customer customer = customerRepository.findByMobileNumber(mobileNumber)
                 .orElseThrow(() -> new ResourceNotFoundException("Customer", "mobileNumber", mobileNumber));
 
-        Accounts accounts = accountsRepository.findByCustomerId(customer.getCustomerId())
-                .orElseThrow(() -> new ResourceNotFoundException("Account", "customerId", customer.getCustomerId().toString()));
+        // Fetch all accounts of the customer
+        Optional<Accounts> accountsList = accountsRepository.findByCustomer_CustomerId(customer.getCustomerId());
 
+        // Convert Customer entity to DTO
         CustomerDto customerDto = CustomerMapper.mapToCustomerDto(customer, new CustomerDto());
-        customerDto.setAccounts(AccountsMapper.mapToAccountsDto(accounts));  // ✅ Corrected field
+
+        // Convert List<Accounts> to List<AccountsDto> and set it in CustomerDto
+        List<AccountsDto> accountsDtoList = accountsList.stream()
+                .map(account -> AccountsMapper.mapToAccountsDto(account))
+                .collect(Collectors.toList());
+
+        customerDto.setAccounts(accountsDtoList);  // ✅ Setting list of accounts
 
         return customerDto;
     }
+
 
 
     /**
@@ -81,30 +95,32 @@ public class AccountsServiceImpl  implements IAccountsService {
      */
     @Override
     public boolean updateAccount(CustomerDto customerDto) {
-        if (customerDto.getAccounts() == null) {
+        if (customerDto.getAccounts() == null || customerDto.getAccounts().isEmpty()) {
             return false; // No account details provided, no update needed
         }
 
-        AccountsDto accountsDto = customerDto.getAccounts();
-
-        // Fetch account details
-        Accounts accounts = accountsRepository.findById(accountsDto.getAccountNumber())
-                .orElseThrow(() -> new ResourceNotFoundException("Account", "AccountNumber", accountsDto.getAccountNumber().toString()));
-
-        // Update account entity and save
-        Accounts updatedAccount = AccountsMapper.mapToAccounts(accountsDto);
-        accountsRepository.save(updatedAccount);
-
-        // Fetch customer details
-        Customer customer = customerRepository.findById(updatedAccount.getCustomerId())
-                .orElseThrow(() -> new ResourceNotFoundException("Customer", "CustomerID", updatedAccount.getCustomerId().toString()));
+        // Fetch the customer based on mobile number
+        Customer customer = customerRepository.findByMobileNumber(customerDto.getMobileNumber())
+                .orElseThrow(() -> new ResourceNotFoundException("Customer", "mobileNumber", customerDto.getMobileNumber()));
 
         // Update customer entity and save
-        Customer updatedCustomer = CustomerMapper.mapToCustomer(customerDto, customer);
-        customerRepository.save(updatedCustomer);
+        CustomerMapper.mapToCustomer(customerDto, customer);
+        customerRepository.save(customer);
+
+        // Loop through all account DTOs to update each account
+        for (AccountsDto accountsDto : customerDto.getAccounts()) {
+            Accounts accounts = accountsRepository.findById(accountsDto.getAccountNumber())
+                    .orElseThrow(() -> new ResourceNotFoundException("Account", "AccountNumber", accountsDto.getAccountNumber().toString()));
+
+            // Update existing account entity
+            AccountsMapper.mapToAccounts(accountsDto);
+            accountsRepository.save(accounts);
+        }
 
         return true;
     }
+
+
 
 
     /**
@@ -116,7 +132,7 @@ public class AccountsServiceImpl  implements IAccountsService {
         Customer customer = customerRepository.findByMobileNumber(mobileNumber).orElseThrow(
                 () -> new ResourceNotFoundException("Customer", "mobileNumber", mobileNumber)
         );
-        accountsRepository.deleteByCustomerId(customer.getCustomerId());
+        accountsRepository.deleteByCustomer_CustomerId(customer.getCustomerId());
         customerRepository.deleteById(customer.getCustomerId());
         return true;
     }
