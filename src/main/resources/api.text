@@ -1,0 +1,21 @@
+1. Accounts Microservice (Manages customer accounts and transactions)
+Customer & Account Management
+POST /accounts – Open a new account (savings/current).
+GET /accounts/{customerId} – Get account details.
+PUT /accounts/{customerId} – Update account details (e.g., address, phone).
+DELETE /accounts/{customerId} – Close account.
+
+Fund Transfers & Payments
+POST /accounts/{customerId}/transfer – Transfer funds to another account.
+POST /accounts/{customerId}/bill-payment – Pay utility bills (e.g., electricity, phone).
+POST /accounts/{customerId}/recharge – Mobile/DTH recharge.
+GET /accounts/{customerId}/payees – List of added beneficiaries.
+POST /accounts/{customerId}/payees – Add a new payee.
+
+
+Account Transactions & Statement
+GET /accounts/{customerId}/transactions?fromDate={}&toDate={} – Get all transactions.
+GET /accounts/{customerId}/mini-statement – Fetch last 5 transactions.
+POST /accounts/{customerId}/cheque-request – Request a new cheque book.
+POST /accounts/{customerId}/stop-cheque – Stop a cheque payment.
+GET /accounts/{customerId}/balance – Fetch account balance.

@@ -1,9 +1,9 @@
 package com.eazybytes.accounts.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-import jakarta.validation.constraints.NotEmpty;
-import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.*;
 import lombok.Data;
+import java.math.BigDecimal;
 
 @Data
 @Schema(
@@ -12,22 +12,17 @@ import lombok.Data;
 )
 public class AccountsDto {
 
-    @NotEmpty(message = "AccountNumber can not be a null or empty")
-    @Pattern(regexp="(^$|[0-9]{10})",message = "AccountNumber must be 10 digits")
-    @Schema(
-            description = "Account Number of Eazy Bank account", example = "3454433243"
-    )
+    @Schema(description = "Unique identifier for the account", example = "9876543210")
     private Long accountNumber;
 
-    @NotEmpty(message = "AccountType can not be a null or empty")
-    @Schema(
-            description = "Account type of Eazy Bank account", example = "Savings"
-    )
+    @Schema(description = "Type of the account", example = "SAVINGS")
+    @NotEmpty(message = "Account type cannot be null or empty")
     private String accountType;
 
-    @NotEmpty(message = "BranchAddress can not be a null or empty")
-    @Schema(
-            description = "Eazy Bank branch address", example = "123 NewYork"
-    )
-    private String branchAddress;
+    @Schema(description = "Current balance of the account", example = "25000.75")
+    @NotNull(message = "Account balance cannot be null")
+    private BigDecimal balance;
+
+    @Schema(description = "IFSC Code of the account", example = "EAZY0123456")
+    private String ifscCode;
 }
